@@ -1,0 +1,844 @@
+{
+  "name": "Service Booking Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Book a Service",
+        "formDescription": "Enter your details and select the service you would like to book.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Service",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Consultation"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "First Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Last Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Phone",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Address",
+              "fieldType": "textarea",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [-304, 48],
+      "id": "f9c7757f-3fa8-46e0-b67b-8f43049c52eb",
+      "name": "On form submission",
+      "webhookId": "398b4e63-79ae-4fe4-afb7-05fac70912d8"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "7c91x75hG1M4il3B",
+          "mode": "list",
+          "cachedResultName": "TimeSlots",
+          "cachedResultUrl": "/projects/OPdmR8732dBkqnEq/datatables/7c91x75hG1M4il3B"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "serviceId",
+              "keyValue": "={{ $json.serviceId }}"
+            },
+            {
+              "keyName": "status",
+              "keyValue": "available"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [112, 48],
+      "id": "c12b3c61-306e-43e5-b621-7399bc875c25",
+      "name": "Get available timeslots",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d89145ef-bcab-4fae-9d34-4ed4617a8bfc",
+              "name": "slotId",
+              "value": "={{ $json.selectedSlot.split(' | ')[1].trim() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [944, 48],
+      "id": "65553bb7-19db-42da-9ced-8776b7768be7",
+      "name": "Extract Selected Slot ID"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "SLACK_WEBHOOK_URL_REPLACE_ME",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": \"Firstname: {{ $('On form submission').first().json['First Name'] }}\\nLastname: {{ $('On form submission').first().json['Last Name'] }}\\nEmail: {{ $('On form submission').first().json.Email }}\\nPhone: {{ $('On form submission').first().json.Phone }}\\nAppointment day: {{ $json.date }}\\nTime: {{ $json.startTime }}-{{ $json.endTime }}\\nService: {{ $('Find Service: mapping').first().json.serviceName }}\\nInternal ID: {{ $('Find Service: mapping').first().json.serviceId }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [2816, -432],
+      "id": "354a68a4-2cd9-436f-a2ca-e50eb6b24f4e",
+      "name": "Send Slack Notification"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Slot no longer available",
+        "completionMessage": "This appointment was booked by someone else while you were completing the form. Please start again and choose another available slot.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [1776, 224],
+      "id": "d0387821-48db-40b5-a1df-93b7f91b25fd",
+      "name": "Form ending:failed case",
+      "webhookId": "6991ea74-427c-432f-bb8c-9af735854dba"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "lu9kqpM8hROdePrT",
+          "mode": "list",
+          "cachedResultName": "Services_mapping",
+          "cachedResultUrl": "/projects/OPdmR8732dBkqnEq/datatables/lu9kqpM8hROdePrT"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "serviceName",
+              "keyValue": "={{ $json.Service }}"
+            },
+            {
+              "keyName": "isActive",
+              "condition": "isTrue"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [-96, 48],
+      "id": "06aba21e-7f64-4e7a-a382-1822659a6e8c",
+      "name": "Find Service: mapping"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "slots",
+        "include": "specifiedFields",
+        "fieldsToInclude": "slotId,  date, startTime, endTime,",
+        "options": {
+          "includeBinaries": false
+        }
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [512, 48],
+      "id": "3f9bba68-f235-4962-97f3-dac86f3377e1",
+      "name": "Aggregate Available Slots",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "defineForm": "json",
+        "jsonOutput": "={{ [\n  {\n    fieldLabel: 'Timeslot',\n    fieldName: 'selectedSlot',\n    fieldType: 'dropdown',\n    fieldOptions: {\n      values: $json.slots.map(slot => ({\n        option: `${$('On form submission').first().json.Service} | ${slot.slotId} | ${DateTime.fromISO(slot.date).setZone('Europe/London').toFormat('dd LLL yyyy')} | ${slot.startTime}-${slot.endTime}`\n      }))\n    },\n    requiredField: true\n  }\n] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [720, 48],
+      "id": "b0d5c99d-e46e-4bf2-9802-befa260cff68",
+      "name": "Choose Timeslot",
+      "webhookId": "45b0c3a6-6814-48fc-acf7-5a20eb4afd82"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "7c91x75hG1M4il3B",
+          "mode": "list",
+          "cachedResultName": "TimeSlots",
+          "cachedResultUrl": "/projects/OPdmR8732dBkqnEq/datatables/7c91x75hG1M4il3B"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "slotId",
+              "keyValue": "={{ $json.slotId }}"
+            },
+            {
+              "keyName": "status",
+              "keyValue": "available"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [1216, 48],
+      "id": "deebb592-97c5-40dc-8948-7c50f478de99",
+      "name": "Recheck slot availability",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8cfeb0fa-0631-4c7d-a60a-64326f7322bb",
+              "leftValue": "={{ Boolean($json.slotId) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [1440, 48],
+      "id": "a43d64e6-cc2f-4f80-aa78-dba5d72710e7",
+      "name": "If Slot Still Available"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7e1b9bd0-6bba-461d-8a88-6eb9e1e82d5a",
+              "name": "firstName",
+              "value": "={{ $('On form submission').item.json['First Name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "71c230d9-9e7d-45a4-9ac8-8e5175292849",
+              "name": "lastName",
+              "value": "={{ $('On form submission').item.json['Last Name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "2ba15bfe-6a4d-45a4-a5fb-7efbfeb787b9",
+              "name": "email",
+              "value": "={{ $('On form submission').item.json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "43e73bc1-84e1-4742-99b1-0e0169db703a",
+              "name": "phone",
+              "value": "={{ $('On form submission').item.json.Phone }}",
+              "type": "string"
+            },
+            {
+              "id": "b964e4e8-1f9d-49d0-8214-37e5bc93455b",
+              "name": "address",
+              "value": "={{ $('On form submission').item.json.Address }}",
+              "type": "string"
+            },
+            {
+              "id": "a8047688-9cdf-4c29-925f-65bb45d275a9",
+              "name": "slotId",
+              "value": "={{ $json.slotId }}",
+              "type": "string"
+            },
+            {
+              "id": "108ef549-6263-4833-af02-35a9f434510b",
+              "name": "serviceId",
+              "value": "={{ $json.serviceId }}",
+              "type": "string"
+            },
+            {
+              "id": "88a676ee-a108-4d69-b137-867bbb4d70d3",
+              "name": "appointmentDate",
+              "value": "={{ $json.date }}",
+              "type": "string"
+            },
+            {
+              "id": "0683e559-0f8f-4664-9b8a-c45a24f911ce",
+              "name": "startTime",
+              "value": "={{ $json.startTime }}",
+              "type": "string"
+            },
+            {
+              "id": "1738bdf7-ef15-48ab-be7f-d7781249995b",
+              "name": "endTime",
+              "value": "={{ $json.endTime }}",
+              "type": "string"
+            },
+            {
+              "id": "3ec4c730-0bf2-4b08-908a-4a2da9398020",
+              "name": "bookingStatus",
+              "value": "confirmed",
+              "type": "string"
+            },
+            {
+              "id": "44d4cce6-64a5-44da-ac9c-f33f61d9e5df",
+              "name": "bookedAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": "=",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1744, -208],
+      "id": "9349141d-4b37-443c-8395-08130ad72f94",
+      "name": "Customer details: Build Booking Record"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "mRiCPKvMltzQsBjb",
+          "mode": "list",
+          "cachedResultName": "CustomerBooking",
+          "cachedResultUrl": "/projects/OPdmR8732dBkqnEq/datatables/mRiCPKvMltzQsBjb"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "firstName": "={{ $json.firstName }}",
+            "lastName": "={{ $json.lastName }}",
+            "email": "={{ $json.email }}",
+            "phone": "={{ $json.phone }}",
+            "address": "={{ $json.address }}",
+            "slotId": "={{ $json.slotId }}",
+            "serviceId": "={{ $json.serviceId }}",
+            "appointmentDate": "={{ $json.appointmentDate }}",
+            "startTime": "={{ $json.startTime }}",
+            "endTime": "={{ $json.endTime }}",
+            "bookingStatus": "={{ $json.bookingStatus }}",
+            "bookedAt": "={{ $json.bookedAt }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "firstName",
+              "displayName": "firstName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "lastName",
+              "displayName": "lastName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "address",
+              "displayName": "address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "slotId",
+              "displayName": "slotId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "serviceId",
+              "displayName": "serviceId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "appointmentDate",
+              "displayName": "appointmentDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "startTime",
+              "displayName": "startTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "endTime",
+              "displayName": "endTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "bookingStatus",
+              "displayName": "bookingStatus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "bookedAt",
+              "displayName": "bookedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [2048, -208],
+      "id": "87ad0d30-2ea0-4465-a6a0-65dc89a468d0",
+      "name": "Create Booking Record in bookingTable"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "7c91x75hG1M4il3B",
+          "mode": "list",
+          "cachedResultName": "TimeSlots",
+          "cachedResultUrl": "/projects/OPdmR8732dBkqnEq/datatables/7c91x75hG1M4il3B"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "slotId",
+              "keyValue": "={{ $json.slotId }}"
+            },
+            {
+              "keyName": "status",
+              "keyValue": "available"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "booked"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "slotId",
+              "displayName": "slotId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "serviceId",
+              "displayName": "serviceId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "startTime",
+              "displayName": "startTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "endTime",
+              "displayName": "endTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [2416, -208],
+      "id": "dd745c84-5dfb-416a-a88f-9cdcf142ed38",
+      "name": "Mark Slot Booked: available>booked"
+    },
+    {
+      "parameters": {
+        "fromEmail": "hbarker209@stpaulsgrammaralumniusa.org",
+        "toEmail": "rcoleman547@afgpuk.co.uk",
+        "subject": "TestEmail",
+        "emailFormat": "text",
+        "text": "=Hi  {{ $('On form submission').item.json['First Name'] }},\nYour appointment is {{ $('Mark Slot Booked: available>booked').item.json.status }}\nYour appointment time is: {{ $('Mark Slot Booked: available>booked').item.json.startTime }}-{{ $('Mark Slot Booked: available>booked').item.json.endTime }}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [2816, 64],
+      "id": "9a4e0d1b-2e4f-40e9-955b-aae8dac5dff9",
+      "name": "Send Customer Confirmation",
+      "webhookId": "0dbd1906-3b91-4ba7-98c2-3a687dcffee0",
+      "executeOnce": true,
+      "credentials": {
+        "smtp": {
+          "id": "TsSs3j9blH7gyIew",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "56ccc2b8-efed-4b15-8634-b5f0e3798415",
+              "leftValue": "={{ Boolean($json.slotId) }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [288, 368],
+      "id": "729c4667-b3e2-4cbd-a2b7-7bf2b9ebf75d",
+      "name": "If→ Any Slots Available?"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "No Available Slots",
+        "completionMessage": "No Available Slots",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [624, 384],
+      "id": "2c1ff7ba-0e6f-4d05-9e6e-82ece2a34d21",
+      "name": "Form ending - no slots available",
+      "webhookId": "67b15cd3-b445-4f99-944f-1f5f0cd0849e"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Find Service: mapping",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get available timeslots": {
+      "main": [
+        [
+          {
+            "node": "If→ Any Slots Available?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Selected Slot ID": {
+      "main": [
+        [
+          {
+            "node": "Recheck slot availability",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Slack Notification": {
+      "main": [[]]
+    },
+    "Find Service: mapping": {
+      "main": [
+        [
+          {
+            "node": "Get available timeslots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Available Slots": {
+      "main": [
+        [
+          {
+            "node": "Choose Timeslot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Choose Timeslot": {
+      "main": [
+        [
+          {
+            "node": "Extract Selected Slot ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recheck slot availability": {
+      "main": [
+        [
+          {
+            "node": "If Slot Still Available",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Slot Still Available": {
+      "main": [
+        [
+          {
+            "node": "Customer details: Build Booking Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Form ending:failed case",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer details: Build Booking Record": {
+      "main": [
+        [
+          {
+            "node": "Create Booking Record in bookingTable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Booking Record in bookingTable": {
+      "main": [
+        [
+          {
+            "node": "Mark Slot Booked: available>booked",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Slot Booked: available>booked": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Customer Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If→ Any Slots Available?": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Available Slots",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Form ending - no slots available",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "7f2e3733-4d17-49ba-a3f3-2c24feb236b7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "13cb6796137fbd390fc1c4e601f085771902143c90363516df969a3748f2a3fc"
+  },
+  "nodeGroups": [],
+  "id": "rG8UxM9JE9wb3VBM",
+  "tags": []
+}
