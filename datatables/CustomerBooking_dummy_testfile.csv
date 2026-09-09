@@ -1,0 +1,5 @@
+﻿firstName,lastName,email,phone,address,slotId,serviceId,appointmentDate,startTime,endTime,bookingStatus,bookedAt
+Test1,test1,test1@gmail.com,123456789,99 TEST address,SLOT-001,SVC-001,2026-07-28T23:00:00.000Z,12:00,12:45,confirmed,2026-08-02T18:35:17.543Z
+Test2,test2,test2@gmail.com,98765332222,"98 address ",SLOT-002,SVC-001,2026-07-28T23:00:00.000Z,10:00,10:45,confirmed,2026-08-02T18:35:43.829Z
+Test3,Test3,test3@gmail.com,123456789,333 test address,SLOT-003,SVC-001,2026-07-28T23:00:00.000Z,09:00,09:45,confirmed,2026-08-02T18:41:05.019Z
+Test4,Test4,test4@gmail.com,44444444,test 444,SLOT-004,SVC-001,2026-07-28T23:00:00.000Z,13.30,14.15,confirmed,2026-08-02T18:41:45.185Z
