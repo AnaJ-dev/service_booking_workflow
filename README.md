@@ -1,4 +1,5 @@
-**Project: Service Booking Workflow
+Project: Service Booking Workflow
+
 **
 Purpose:
 Customers select a service and an available appointment slot.
